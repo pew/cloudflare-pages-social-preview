@@ -1,36 +1,23 @@
-let name
-let ogtag
-
 class ElementHandler {
+  constructor(ogtag) {
+    this.ogtag = ogtag
+  }
   element(element) {
-    element.append(ogtag, { html: true })
+    element.append(this.ogtag, { html: true })
   }
 }
-const rewriter = new HTMLRewriter().on("head", new ElementHandler())
 
 export async function onRequest(context) {
-  const {
-    request, // same as existing Worker API
-    env, // same as existing Worker API
-    params, // if filename includes [id] or [[path]]
-    waitUntil, // same as ctx.waitUntil in existing Worker API
-    next, // used for middleware or to fetch assets
-    data, // arbitrary space for passing data between middlewares
-  } = context
-
-  let res = await next()
-
-  // get query strings provided with request and path name accessing the page
+  const { request, next } = context
+  const res = await next()
   const { searchParams, pathname } = new URL(request.url)
 
-  // do not inject metatags if just /index.html or / is accessed, just serve the site immediately
-  // if you want to include social previews on every page, remove the next three lines
-  if (!(pathname === "/index.html" || pathname === "/")) {
+  if (!(pathname === '/index.html' || pathname === '/')) {
     return res
   }
 
-  // querystring I'm looking for to create dynamic images, this is an optional thing depending on your case
-  name = searchParams.get("myQuery")
+  let name = searchParams.get('myQuery')
+  let ogtag
 
   // these are the metatags we want to inject into the site
   ogtag = `
@@ -40,7 +27,7 @@ export async function onRequest(context) {
     <meta property="og:locale:alternate" content="de_DE" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${request.url}" />
-    <meta property="og:image" content="https://example.com/preview.png?${name ? "myQuery=" + name : "default"}" />
+    <meta property="og:image" content="https://example.com/preview.png?${name ? 'myQuery=' + name : 'default'}" />
 
     <meta property="og:image:height" content="630" />
     <meta property="og:image:width" content="1200" />
@@ -52,5 +39,5 @@ export async function onRequest(context) {
     <meta name="description" content="and even more stuff about my page" />
   `
 
-  return rewriter.transform(res)
+  return new HTMLRewriter().on('head', new ElementHandler(ogtag)).transform(res)
 }
